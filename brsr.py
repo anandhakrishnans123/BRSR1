@@ -31,12 +31,18 @@ client_file1 = st.file_uploader("Upload the Client Workbook for Employment Data"
 client_file2 = st.file_uploader("Upload the Client Workbook for Training Data", type="xlsx")
 template_file = 'BRSR-Report_Data-Template.xlsx'  # Load template directly from local (as per your request)
 
-def create_excel_file(df1, df2=None):
+def create_excel_file(df1, df2=None, template_sheets=None):
     with BytesIO() as buffer:
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            # Write processed data
             df1.to_excel(writer, sheet_name='Trans_Emp-Work', index=False)
             if df2 is not None:
                 df2.to_excel(writer, sheet_name='Trans_Trainings', index=False)
+            # Write remaining template sheets that were not processed
+            if template_sheets:
+                for sheet_name, df in template_sheets.items():
+                    if sheet_name not in ['Trans_Emp-Work', 'Trans_Trainings']:
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
         return buffer.getvalue()
 
 if st.button("Generate Excel File"):
@@ -73,7 +79,6 @@ if st.button("Generate Excel File"):
         final_data1.loc[final_data1["Company Name"] == "TRANSWORLD LOGISTICS DWC LLC", "Org_Code"] = "DWC"
         final_data1["Org_Code"].fillna("DWC", inplace=True)
 
-        # Replace NaN values with 'No' for specific columns
         columns_to_replace = [
             "Health_Insurance", "Day_Care_Facility", "Accident_Insurance",
             "Gratuity", "Min_wage_applicability", "Severity_Work_Related_Injury",
@@ -139,14 +144,16 @@ if st.button("Generate Excel File"):
             final_data2['Train_mode'] = final_data2['Train_mode'].apply(lambda x: random.choice(['Online']) if pd.isna(x) else x)
             final_data2['Train_cat'] = final_data2['Train_cat'].apply(lambda x: random.choice(['Others']) if pd.isna(x) else x)
 
-            # Drop NA rows from final training data
             final_data2.dropna(inplace=True)
 
-            excel_data = create_excel_file(final_data1, final_data2)
+            # Get template sheets excluding the processed ones
+            remaining_sheets = {k: v for k, v in template_df.items() if k not in ['Trans_Emp-Work', 'Trans_Trainings']}
+            excel_data = create_excel_file(final_data1, final_data2, remaining_sheets)
             st.download_button(label="Download Processed Data", data=excel_data, file_name="processed_data.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
         else:
-            excel_data = create_excel_file(final_data1)
+            remaining_sheets = {k: v for k, v in template_df.items() if k != 'Trans_Emp-Work'}
+            excel_data = create_excel_file(final_data1, template_sheets=remaining_sheets)
             st.download_button(label="Download Processed Data", data=excel_data, file_name="processed_data.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     else:
         st.warning("Please upload the Employment Data file.")
