@@ -89,7 +89,7 @@ if st.button("Generate Excel File"):
         ]
 
         final_data1[columns_to_replace] = final_data1[columns_to_replace].replace({np.nan: "No"})
-
+        final_data1['Last_date_Performance_Career_Devlopment Review'] = specific_date
         final_data1['Emp_type'] = "Full Time"
         final_data1['Remuneration'] = np.random.randint(10000, 100000, size=len(final_data1))
         final_data1['Min_wage'] = np.random.randint(10000, 100000, size=len(final_data1))
